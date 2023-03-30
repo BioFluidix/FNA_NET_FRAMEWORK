@@ -12,19 +12,14 @@
 #endregion
 
 #region Using Statements
+
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Diagnostics;
 
-using Microsoft.Xna.Framework.Design;
 #endregion
 
 namespace Microsoft.Xna.Framework
 {
-	[Serializable]
-	[TypeConverter(typeof(BoundingBoxConverter))]
-	[DebuggerDisplay("{DebugDisplayString,nq}")]
 	public struct BoundingBox : IEquatable<BoundingBox>
 	{
 		#region Internal Properties
@@ -72,15 +67,6 @@ namespace Microsoft.Xna.Framework
 
 		#region Public Methods
 
-		public void Contains(ref BoundingBox box, out ContainmentType result)
-		{
-			result = Contains(box);
-		}
-
-		public void Contains(ref BoundingSphere sphere, out ContainmentType result)
-		{
-			result = this.Contains(sphere);
-		}
 
 		public ContainmentType Contains(Vector3 point)
 		{
@@ -116,148 +102,6 @@ namespace Microsoft.Xna.Framework
 			return ContainmentType.Intersects;
 		}
 
-		public ContainmentType Contains(BoundingFrustum frustum)
-		{
-			/* TODO: bad done here need a fix.
-			 * Because the question is not if frustum contains box but the reverse and
-			 * this is not the same.
-			 */
-			int i;
-			ContainmentType contained;
-			Vector3[] corners = frustum.GetCorners();
-
-			// First we check if frustum is in box.
-			for (i = 0; i < corners.Length; i += 1)
-			{
-				this.Contains(ref corners[i], out contained);
-				if (contained == ContainmentType.Disjoint)
-				{
-					break;
-				}
-			}
-
-			// This means we checked all the corners and they were all contain or instersect
-			if (i == corners.Length)
-			{
-				return ContainmentType.Contains;
-			}
-
-			// If i is not equal to zero, we can fastpath and say that this box intersects
-			if (i != 0)
-			{
-				return ContainmentType.Intersects;
-			}
-
-
-			/* If we get here, it means the first (and only) point we checked was
-			 * actually contained in the frustum. So we assume that all other points
-			 * will also be contained. If one of the points is disjoint, we can
-			 * exit immediately saying that the result is Intersects
-			 */
-			i += 1;
-			for (; i < corners.Length; i += 1)
-			{
-				this.Contains(ref corners[i], out contained);
-				if (contained != ContainmentType.Contains)
-				{
-					return ContainmentType.Intersects;
-				}
-
-			}
-
-			/* If we get here, then we know all the points were actually contained,
-			 * therefore result is Contains.
-			 */
-			return ContainmentType.Contains;
-		}
-
-		public ContainmentType Contains(BoundingSphere sphere)
-		{
-			if (	sphere.Center.X - Min.X >= sphere.Radius &&
-				sphere.Center.Y - Min.Y >= sphere.Radius &&
-				sphere.Center.Z - Min.Z >= sphere.Radius &&
-				Max.X - sphere.Center.X >= sphere.Radius &&
-				Max.Y - sphere.Center.Y >= sphere.Radius &&
-				Max.Z - sphere.Center.Z >= sphere.Radius	)
-			{
-				return ContainmentType.Contains;
-			}
-
-			double dmin = 0;
-
-			double e = sphere.Center.X - Min.X;
-			if (e < 0)
-			{
-				if (e < -sphere.Radius)
-				{
-					return ContainmentType.Disjoint;
-				}
-				dmin += e * e;
-			}
-			else
-			{
-				e = sphere.Center.X - Max.X;
-				if (e > 0)
-				{
-					if (e > sphere.Radius)
-					{
-						return ContainmentType.Disjoint;
-					}
-					dmin += e * e;
-				}
-			}
-
-			e = sphere.Center.Y - Min.Y;
-			if (e < 0)
-			{
-				if (e < -sphere.Radius)
-				{
-					return ContainmentType.Disjoint;
-				}
-				dmin += e * e;
-			}
-			else
-			{
-				e = sphere.Center.Y - Max.Y;
-				if (e > 0)
-				{
-					if (e > sphere.Radius)
-					{
-						return ContainmentType.Disjoint;
-					}
-					dmin += e * e;
-				}
-			}
-
-			e = sphere.Center.Z - Min.Z;
-			if (e < 0)
-			{
-				if (e < -sphere.Radius)
-				{
-					return ContainmentType.Disjoint;
-				}
-				dmin += e * e;
-			}
-			else
-			{
-				e = sphere.Center.Z - Max.Z;
-				if (e > 0)
-				{
-					if (e > sphere.Radius)
-					{
-						return ContainmentType.Disjoint;
-					}
-					dmin += e * e;
-				}
-			}
-
-			if (dmin <= sphere.Radius * sphere.Radius)
-			{
-				return ContainmentType.Intersects;
-			}
-
-			return ContainmentType.Disjoint;
-		}
 
 		public void Contains(ref Vector3 point, out ContainmentType result)
 		{
@@ -327,37 +171,11 @@ namespace Microsoft.Xna.Framework
 			corners[7].Z = this.Min.Z;
 		}
 
-		public Nullable<float> Intersects(Ray ray)
-		{
-			return ray.Intersects(this);
-		}
-
-		public void Intersects(ref Ray ray, out Nullable<float> result)
-		{
-			result = Intersects(ray);
-		}
-
-		public bool Intersects(BoundingFrustum frustum)
-		{
-			return frustum.Intersects(this);
-		}
-
-		public void Intersects(ref BoundingSphere sphere, out bool result)
-		{
-			result = Intersects(sphere);
-		}
 
 		public bool Intersects(BoundingBox box)
 		{
 			bool result;
 			Intersects(ref box, out result);
-			return result;
-		}
-
-		public PlaneIntersectionType Intersects(Plane plane)
-		{
-			PlaneIntersectionType result;
-			Intersects(ref plane, out result);
 			return result;
 		}
 
@@ -379,120 +197,6 @@ namespace Microsoft.Xna.Framework
 			return;
 		}
 
-		public bool Intersects(BoundingSphere sphere)
-		{
-			if (	sphere.Center.X - Min.X > sphere.Radius &&
-				sphere.Center.Y - Min.Y > sphere.Radius &&
-				sphere.Center.Z - Min.Z > sphere.Radius &&
-				Max.X - sphere.Center.X > sphere.Radius &&
-				Max.Y - sphere.Center.Y > sphere.Radius &&
-				Max.Z - sphere.Center.Z > sphere.Radius	)
-			{
-				return true;
-			}
-
-			float radiusSq = sphere.Radius * sphere.Radius;
-
-			double dmin = 0;
-
-			if (sphere.Center.X < Min.X)
-			{
-				dmin += (sphere.Center.X - Min.X) * (sphere.Center.X - Min.X);
-			}
-			else if (sphere.Center.X > Max.X)
-			{
-				dmin += (sphere.Center.X - Max.X) * (sphere.Center.X - Max.X);
-			}
-
-			if (sphere.Center.Y < Min.Y)
-			{
-				dmin += (sphere.Center.Y - Min.Y) * (sphere.Center.Y - Min.Y);
-			}
-			else if (sphere.Center.Y > Max.Y)
-			{
-				dmin += (sphere.Center.Y - Max.Y) * (sphere.Center.Y - Max.Y);
-			}
-
-			if (sphere.Center.Z < Min.Z)
-			{
-				dmin += (sphere.Center.Z - Min.Z) * (sphere.Center.Z - Min.Z);
-			}
-			else if (sphere.Center.Z > Max.Z)
-			{
-				dmin += (sphere.Center.Z - Max.Z) * (sphere.Center.Z - Max.Z);
-			}
-
-			return (dmin <= radiusSq);
-		}
-
-		public void Intersects(ref Plane plane, out PlaneIntersectionType result)
-		{
-			// See http://zach.in.tu-clausthal.de/teaching/cg_literatur/lighthouse3d_view_frustum_culling/index.html
-
-			Vector3 positiveVertex;
-			Vector3 negativeVertex;
-
-			if (plane.Normal.X >= 0)
-			{
-				positiveVertex.X = Max.X;
-				negativeVertex.X = Min.X;
-			}
-			else
-			{
-				positiveVertex.X = Min.X;
-				negativeVertex.X = Max.X;
-			}
-
-			if (plane.Normal.Y >= 0)
-			{
-				positiveVertex.Y = Max.Y;
-				negativeVertex.Y = Min.Y;
-			}
-			else
-			{
-				positiveVertex.Y = Min.Y;
-				negativeVertex.Y = Max.Y;
-			}
-
-			if (plane.Normal.Z >= 0)
-			{
-				positiveVertex.Z = Max.Z;
-				negativeVertex.Z = Min.Z;
-			}
-			else
-			{
-				positiveVertex.Z = Min.Z;
-				negativeVertex.Z = Max.Z;
-			}
-
-			// Inline Vector3.Dot(plane.Normal, negativeVertex) + plane.D;
-			float distance = (
-				plane.Normal.X * negativeVertex.X +
-				plane.Normal.Y * negativeVertex.Y +
-				plane.Normal.Z * negativeVertex.Z +
-				plane.D
-			);
-			if (distance > 0)
-			{
-				result = PlaneIntersectionType.Front;
-				return;
-			}
-
-			// Inline Vector3.Dot(plane.Normal, positiveVertex) + plane.D;
-			distance = (
-				plane.Normal.X * positiveVertex.X +
-				plane.Normal.Y * positiveVertex.Y +
-				plane.Normal.Z * positiveVertex.Z +
-				plane.D
-			);
-			if (distance < 0)
-			{
-				result = PlaneIntersectionType.Back;
-				return;
-			}
-
-			result = PlaneIntersectionType.Intersecting;
-		}
 
 		public bool Equals(BoundingBox other)
 		{
@@ -543,19 +247,6 @@ namespace Microsoft.Xna.Framework
 			return new BoundingBox(minVec, maxVec);
 		}
 
-		public static BoundingBox CreateFromSphere(BoundingSphere sphere)
-		{
-			BoundingBox result;
-			CreateFromSphere(ref sphere, out result);
-			return result;
-		}
-
-		public static void CreateFromSphere(ref BoundingSphere sphere, out BoundingBox result)
-		{
-			Vector3 corner = new Vector3(sphere.Radius);
-			result.Min = sphere.Center - corner;
-			result.Max = sphere.Center + corner;
-		}
 
 		public static BoundingBox CreateMerged(BoundingBox original, BoundingBox additional)
 		{
